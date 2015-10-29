@@ -57,4 +57,9 @@ def get_xls_support():
         return 'pyexcelerator'
     except ImportError:
         pass
+    try:
+        import xlsxwriter
+        return 'xlsxwriter'
+    except ImportError:
+        pass
     return None

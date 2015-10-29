@@ -63,10 +63,13 @@ class UnicodeWriter:
         self.encoding = encoding
 
     def writerow(self, row):
+
         if PY3:
+
             self.writer.writerow([s for s in row])
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
+
         else:
             self.writer.writerow([s.encode(self.encoding) for s in row])
             # Fetch UTF-8 output from the queue ...
@@ -121,6 +124,7 @@ class TableReport(tables.Table):
         response = HttpResponse()
         csv_writer = UnicodeWriter(response, encoding=settings.DEFAULT_CHARSET)
         csv_header = [column.header for column in self.columns]
+
         csv_writer.writerow(csv_header)
         for row in self.rows:
             csv_row = []
@@ -137,10 +141,42 @@ class TableReport(tables.Table):
 
     @_with_exclude_from_report
     def as_xls(self, request):
-        return self.as_csv(request)
+        from io import BytesIO
+        import xlsxwriter,collections
+
+        output = BytesIO()
+        wb = xlsxwriter.Workbook(output, {'in_memory': True})
+        header_format = wb.add_format({'bold': True})
+        ws = wb.add_worksheet(self.param_report[:csv_to_xls.MAX_LENGTH_TITLE_SHEET])
+
+        csv_header = [column.header for column in self.columns]
+        cell_widths = collections.defaultdict(lambda: 0)
+        ws.write_row('A1',[unicode(s) for s in csv_header],header_format)
+        r = 1
+        for row in self.rows:
+            csv_row = []
+            for column, cell in row.items():
+                if isinstance(cell, string):
+                    # if cell is not a string strip_tags(cell) get an
+                    # error in django 1.6
+                    cell = strip_tags(cell)
+                else:
+                    cell = unicode(cell)
+                csv_row.append(cell)
+            c = 0
+            for col in csv_row:
+
+                ws.write(r,c,col)
+                c +=1
+            r += 1
+
+        wb.close()
+        output.seek(0)
+        return output.read()
+
 
     def treatement_to_response(self, response, report_format='csv'):
-        if report_format == 'xls':
+        if report_format == 'xlsd':
             csv_to_xls.convert(response, get_excel_support(),
                                encoding=settings.DEFAULT_CHARSET,
                                title_sheet=self.param_report[:csv_to_xls.MAX_LENGTH_TITLE_SHEET])

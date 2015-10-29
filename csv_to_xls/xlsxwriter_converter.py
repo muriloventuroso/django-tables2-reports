@@ -29,6 +29,7 @@ PY3 = sys.version_info[0] == 3
 
 
 def convert(response, encoding='utf-8', title_sheet='Sheet 1', content_attr='content', csv_kwargs=None):
+    import ddd
     csv_kwargs = csv_kwargs or {}
     output = BytesIO()
     wb = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -43,9 +44,7 @@ def convert(response, encoding='utf-8', title_sheet='Sheet 1', content_attr='con
 
     # Roughly autosize output column widths based on maximum column size
     # and add bold style for the header
-    for i, cell_width in cell_widths.items():
-        ws.cell(column=i, row=0).style.font.bold = True
-        ws.column_dimensions[get_column_letter(i + 1)].width = cell_width
+
     wb.close()
     output.seek(0)
 
